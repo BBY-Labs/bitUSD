@@ -1,8 +1,4 @@
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use starknet::ContractAddress;
-use crate::ActivePool::IActivePoolDispatcher;
-use crate::BitUSD::IBitUSDDispatcher;
-use crate::TroveManager::ITroveManagerDispatcher;
 
 #[starknet::interface]
 pub trait IAddressesRegistry<TContractState> {
@@ -11,6 +7,21 @@ pub trait IAddressesRegistry<TContractState> {
         active_pool: ContractAddress,
         default_pool: ContractAddress,
         price_feed: ContractAddress,
+        hint_helpers: ContractAddress,
+        multi_trove_getter: ContractAddress,
+        metadata_nft: ContractAddress,
+        eth: ContractAddress,
+        borrower_operations: ContractAddress,
+        trove_manager: ContractAddress,
+        trove_nft: ContractAddress,
+        gas_pool: ContractAddress,
+        coll_surplus_pool: ContractAddress,
+        sorted_troves: ContractAddress,
+        collateral_registry: ContractAddress,
+        bitusd: ContractAddress,
+        interest_router: ContractAddress,
+        stability_pool: ContractAddress,
+        coll_token: ContractAddress,
     );
 
     fn get_active_pool(self: @TContractState) -> ContractAddress;
@@ -34,16 +45,17 @@ pub trait IAddressesRegistry<TContractState> {
     fn get_sorted_troves(self: @TContractState) -> ContractAddress;
     fn get_collateral_registry(self: @TContractState) -> ContractAddress;
     fn get_eth(self: @TContractState) -> ContractAddress;
+    fn get_hint_helpers(self: @TContractState) -> ContractAddress;
+    fn get_multi_trove_getter(self: @TContractState) -> ContractAddress;
+    fn get_metadata_nft(self: @TContractState) -> ContractAddress;
+    fn get_price_feed(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
 pub mod AddressesRegistry {
     use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use crate::BitUSD::{IBitUSDDispatcher, IBitUSDDispatcherTrait};
-    use crate::TroveManager::{ITroveManagerDispatcher, ITroveManagerDispatcherTrait};
     use crate::dependencies::Constants::Constants::{
         MAX_LIQUIDATION_PENALTY_REDISTRIBUTION, MIN_LIQUIDATION_PENALTY_SP, _100PCT, _1PCT,
     };
@@ -89,6 +101,9 @@ pub mod AddressesRegistry {
         sorted_troves: ContractAddress,
         collateral_registry: ContractAddress,
         eth: ContractAddress,
+        hint_helpers: ContractAddress,
+        multi_trove_getter: ContractAddress,
+        metadata_nft: ContractAddress,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
     }
@@ -160,12 +175,43 @@ pub mod AddressesRegistry {
             active_pool: ContractAddress,
             default_pool: ContractAddress,
             price_feed: ContractAddress,
+            hint_helpers: ContractAddress,
+            multi_trove_getter: ContractAddress,
+            metadata_nft: ContractAddress,
+            eth: ContractAddress,
+            borrower_operations: ContractAddress,
+            trove_manager: ContractAddress,
+            trove_nft: ContractAddress,
+            gas_pool: ContractAddress,
+            coll_surplus_pool: ContractAddress,
+            sorted_troves: ContractAddress,
+            collateral_registry: ContractAddress,
+            bitusd: ContractAddress,
+            interest_router: ContractAddress,
+            stability_pool: ContractAddress,
+            coll_token: ContractAddress,
         ) {
             self.ownable.assert_only_owner();
 
             self.active_pool.write(active_pool);
             self.default_pool.write(default_pool);
             self.price_feed.write(price_feed);
+            self.hint_helpers.write(hint_helpers);
+            self.multi_trove_getter.write(multi_trove_getter);
+            self.metadata_nft.write(metadata_nft);
+            self.eth.write(eth);
+            self.borrower_operations.write(borrower_operations);
+            self.trove_manager.write(trove_manager);
+            self.trove_nft.write(trove_nft);
+            self.gas_pool.write(gas_pool);
+            self.coll_surplus_pool.write(coll_surplus_pool);
+            self.sorted_troves.write(sorted_troves);
+            self.collateral_registry.write(collateral_registry);
+            self.bit_usd.write(bitusd);
+            self.interest_router.write(interest_router);
+            self.stability_pool.write(stability_pool);
+            self.coll_token.write(coll_token);
+            self.ownable.renounce_ownership();
         }
 
         //////////////////////////////////////////////////////////////
@@ -251,6 +297,22 @@ pub mod AddressesRegistry {
 
         fn get_eth(self: @ContractState) -> ContractAddress {
             self.eth.read()
+        }
+
+        fn get_hint_helpers(self: @ContractState) -> ContractAddress {
+            self.hint_helpers.read()
+        }
+
+        fn get_multi_trove_getter(self: @ContractState) -> ContractAddress {
+            self.multi_trove_getter.read()
+        }
+
+        fn get_metadata_nft(self: @ContractState) -> ContractAddress {
+            self.metadata_nft.read()
+        }
+
+        fn get_price_feed(self: @ContractState) -> ContractAddress {
+            self.price_feed.read()
         }
     }
 }

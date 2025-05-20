@@ -68,5 +68,5 @@ pub mod Constants {
     pub const INTEREST_RATE_ADJ_COOLDOWN: u64 = 604800; // 7 days in seconds
 
     pub const SP_YIELD_SPLIT: u256 = 75 * _1PCT; // 75%
-    pub const MIN_BIT_USD_IN_SP: u256 = DECIMAL_PRECISION; // 1e18
+    pub const MIN_BITUSD_IN_SP: u256 = DECIMAL_PRECISION; // 1e18
 }

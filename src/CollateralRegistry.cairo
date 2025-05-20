@@ -35,6 +35,7 @@ pub mod CollateralRegistry {
         DECIMAL_PRECISION, INITIAL_BASE_RATE, ONE_MINUTE, REDEMPTION_FEE_FLOOR,
         REDEMPTION_MINUTE_DECAY_FACTOR,
     };
+    use crate::dependencies::LiquityBase::{ILiquityBaseDispatcher, ILiquityBaseDispatcherTrait};
     use crate::dependencies::MathLib::math_lib;
     use super::ICollateralRegistry;
 
@@ -229,7 +230,10 @@ pub mod CollateralRegistry {
                         .get_unbacked_portion_price_and_redeemability();
 
                     if redeemable {
-                        let unbacked_portion = trove_manager.get_entire_branch_debt();
+                        let unbacked_portion = ILiquityBaseDispatcher {
+                            contract_address: trove_address,
+                        }
+                            .get_entire_branch_debt();
                         totals.unbacked = totals.unbacked + unbacked_portion;
                         unbacked_portions.append(unbacked_portion);
                     } else {
