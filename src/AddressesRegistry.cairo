@@ -44,7 +44,7 @@ pub trait IAddressesRegistry<TContractState> {
     fn get_coll_surplus_pool(self: @TContractState) -> ContractAddress;
     fn get_sorted_troves(self: @TContractState) -> ContractAddress;
     fn get_collateral_registry(self: @TContractState) -> ContractAddress;
-    fn get_eth(self: @TContractState) -> ContractAddress;
+    fn get_eth(self: @TContractState) -> ContractAddress; // TODO: change to btc
     fn get_hint_helpers(self: @TContractState) -> ContractAddress;
     fn get_multi_trove_getter(self: @TContractState) -> ContractAddress;
     fn get_metadata_nft(self: @TContractState) -> ContractAddress;
@@ -100,7 +100,7 @@ pub mod AddressesRegistry {
         coll_surplus_pool: ContractAddress,
         sorted_troves: ContractAddress,
         collateral_registry: ContractAddress,
-        eth: ContractAddress,
+        eth: ContractAddress, // TODO: change to btc
         hint_helpers: ContractAddress,
         multi_trove_getter: ContractAddress,
         metadata_nft: ContractAddress,

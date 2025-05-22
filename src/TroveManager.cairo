@@ -1,5 +1,6 @@
 use starknet::ContractAddress;
 use crate::i257::i257;
+use starknet::storage::{ Vec };
 
 #[starknet::interface]
 pub trait ITroveNFT<TContractState> {
@@ -10,6 +11,7 @@ pub trait ITroveNFT<TContractState> {
 pub trait ITroveManager<TContractState> {
     // View functions
     fn get_unbacked_portion_price_and_redeemability(self: @TContractState) -> (u256, u256, bool);
+    fn get_latest_trove_data(self: @TContractState, trove_id: u256) -> LatestTroveData;
     fn get_batch_ids(self: @TContractState, index: u64) -> ContractAddress;
     fn get_trove_ids_count(self: @TContractState) -> u64;
     fn get_trove_from_trove_ids_array(self: @TContractState, index: u256) -> u256;
@@ -25,6 +27,8 @@ pub trait ITroveManager<TContractState> {
     fn get_latest_batch_data(
         self: @TContractState, batch_address: ContractAddress,
     ) -> LatestBatchData;
+    // TODO: remove this
+    fn get_owner_to_positions(self: @TContractState, owner: ContractAddress) -> Array<u256>;
     fn get_current_ICR(self: @TContractState, trove_id: u256, price: u256) -> u256;
     fn get_last_zombie_trove_id(self: @TContractState) -> u256;
     fn get_shutdown_time(self: @TContractState) -> u256;
@@ -129,6 +133,7 @@ pub trait ITroveManager<TContractState> {
         annual_interest_rate: u256,
         annual_management_fee: u256,
     );
+    fn shutdown(ref self: TContractState); // TODO
     fn on_set_batch_manager_annual_interest_rate(
         ref self: TContractState,
         batch_address: ContractAddress,
@@ -146,14 +151,14 @@ struct RewardSnapshots {
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
-struct OnSetInterestBatchManagerParams {
-    trove_id: u256,
-    trove_coll: u256,
-    trove_debt: u256,
-    trove_change: TroveChange,
-    new_batch_address: ContractAddress,
-    new_batch_coll: u256,
-    new_batch_debt: u256,
+pub struct OnSetInterestBatchManagerParams {
+    pub trove_id: u256,
+    pub trove_coll: u256,
+    pub trove_debt: u256,
+    pub trove_change: TroveChange,
+    pub new_batch_address: ContractAddress,
+    pub new_batch_coll: u256,
+    pub new_batch_debt: u256,
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
@@ -187,7 +192,7 @@ pub struct TroveChange {
 }
 
 #[derive(Copy, Drop, PartialEq, Serde, starknet::Store)]
-enum Status {
+pub enum Status {
     #[default]
     NonExistent,
     Active,
@@ -197,33 +202,33 @@ enum Status {
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store, Default)]
-struct LatestTroveData {
-    entire_debt: u256,
-    entire_coll: u256,
-    redist_bit_usd_debt_gain: u256,
-    redist_coll_gain: u256,
-    accrued_interest: u256,
-    recorded_debt: u256,
-    annual_interest_rate: u256,
-    weighted_recorded_debt: u256,
-    accrued_batch_management_fee: u256,
-    last_interest_rate_adj_time: u256,
+pub struct LatestTroveData {
+    pub entire_debt: u256,
+    pub entire_coll: u256,
+    pub redist_bit_usd_debt_gain: u256,
+    pub redist_coll_gain: u256,
+    pub accrued_interest: u256,
+    pub recorded_debt: u256,
+    pub annual_interest_rate: u256,
+    pub weighted_recorded_debt: u256,
+    pub accrued_batch_management_fee: u256,
+    pub last_interest_rate_adj_time: u256,
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store, Default)]
-struct LatestBatchData {
-    total_debt_shares: u256,
-    entire_debt_without_redistribution: u256,
-    entire_coll_without_redistribution: u256,
-    accrued_interest: u256,
-    recorded_debt: u256,
-    annual_interest_rate: u256,
-    weighted_recorded_debt: u256,
-    annual_management_fee: u256,
-    accrued_management_fee: u256,
-    weighted_recorded_batch_management_fee: u256,
-    last_debt_update_time: u256,
-    last_interest_rate_adj_time: u256,
+pub struct LatestBatchData {
+    pub total_debt_shares: u256,
+    pub entire_debt_without_redistribution: u256,
+    pub entire_coll_without_redistribution: u256,
+    pub accrued_interest: u256,
+    pub recorded_debt: u256,
+    pub annual_interest_rate: u256,
+    pub weighted_recorded_debt: u256,
+    pub annual_management_fee: u256,
+    pub accrued_management_fee: u256,
+    pub weighted_recorded_batch_management_fee: u256,
+    pub last_debt_update_time: u256,
+    pub last_interest_rate_adj_time: u256,
 }
 
 #[derive(Drop, starknet::Event)]
@@ -413,6 +418,7 @@ pub mod TroveManager {
         reward_snapshots: Map<u256, RewardSnapshots>,
         trove_ids: Vec<u256>,
         batch_ids: Vec<ContractAddress>,
+        owner_to_positions: Map<ContractAddress, Vec<u256>>,
         last_zombie_trove_id: u256,
         // Error trackers for the trove redistribution calculation
         last_coll_error_redistribution: u256,
@@ -716,7 +722,7 @@ pub mod TroveManager {
             let price_feed = IPriceFeedMockDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let price = price_feed.fetch_price();
+            let (price, _) = price_feed.fetch_price();
 
             // It's redeemable if the TCR is above the shutdown threshold, and branch has not been
             // shut down.
@@ -724,6 +730,12 @@ pub mod TroveManager {
             let redeemable = self.liquity_base._get_TCR(price) >= self.SCR.read()
                 && self.shutdown_time.read() == 0;
             (unbacked_portion, price, redeemable)
+        }
+
+        fn get_latest_trove_data(self: @ContractState, trove_id: u256) -> LatestTroveData {
+            let mut trove: LatestTroveData = Default::default();
+            _get_latest_trove_data(self, trove_id, ref trove);
+            trove
         }
 
         fn get_trove_annual_interest_rate(self: @ContractState, trove_id: u256) -> u256 {
@@ -752,7 +764,7 @@ pub mod TroveManager {
             let price_feed = IPriceFeedMockDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let price = price_feed.fetch_price();
+            let (price, _) = price_feed.fetch_price();
 
             // - If the SP has total deposits >= 1e18, we leave 1e18 in it untouched.
             // - If it has 0 < x < 1e18 total deposits, we leave x in it.
@@ -923,6 +935,15 @@ pub mod TroveManager {
                 );
         }
 
+         // TODO: remove this
+        fn get_owner_to_positions(self: @ContractState, owner: ContractAddress) -> Array<u256> {
+            let mut trove_ids: Array<u256> = array![];
+            for i in 0..self.owner_to_positions.entry(owner).len() {
+                trove_ids.append(self.owner_to_positions.entry(owner).at(i).read());
+            }
+            trove_ids
+        }
+
         fn on_open_trove(
             ref self: ContractState,
             owner: ContractAddress,
@@ -955,6 +976,10 @@ pub mod TroveManager {
             // Mint ERC721
             let trove_nft = ITroveNFTDispatcher { contract_address: self.trove_nft.read() };
             trove_nft.mint(owner, trove_id);
+
+            // Add trove id to owner's positions
+             // TODO: remove this
+            self.owner_to_positions.entry(owner).push(trove_id);
 
             _update_trove_reward_snapshots(ref self, trove_id);
 
@@ -1322,6 +1347,17 @@ pub mod TroveManager {
                 );
         }
 
+        fn shutdown(ref self: ContractState) {
+            _require_caller_is_borrower_operations(@self);
+
+            self.shutdown_time.write(get_block_timestamp().into());
+
+            let active_pool = IActivePoolDispatcher {
+                contract_address: self.liquity_base.active_pool.read(),
+            };
+            active_pool.set_shutdown_flag();
+        }
+
         // Send _boldamount Bold to the system and redeem the corresponding amount of collateral
         // from as many Troves as are needed to fill the redemption request.  Applies redistribution
         // gains to a Trove before reducing its debt and coll.
@@ -1555,7 +1591,7 @@ pub mod TroveManager {
             let price_feed = IPriceFeedMockDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let price = price_feed.fetch_price();
+            let (price, _) = price_feed.fetch_price();
 
             let mut remaining_bit_usd = bit_usd_amount;
             let mut i = 0;
