@@ -3,6 +3,7 @@ use starknet::ContractAddress;
 #[starknet::interface]
 pub trait IStabilityPool<TContractState> {
     // TODO missing getters?
+    fn deposits(self: @TContractState, depositor: ContractAddress) -> u256;
     // --- Getters for public variables. Required by IPool interface ---
     fn get_coll_balance(self: @TContractState) -> u256;
     fn get_total_bitusd_deposits(self: @TContractState) -> u256;
@@ -172,6 +173,8 @@ pub trait IStabilityPool<TContractState> {
 
 #[starknet::contract]
 pub mod StabilityPool {
+    use alexandria_math::const_pow::pow10;
+    use alexandria_math::fast_power::fast_power;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
@@ -195,10 +198,10 @@ pub mod StabilityPool {
     //                        CONSTANTS                         //
     //////////////////////////////////////////////////////////////
 
-    const P_PRECISION: u256 = 1 * 10 ^ 36; // TODO check if this is correct
+    const P_PRECISION: u256 = 1000000000000000000000000000000000000; // 1e36
 
     // A scale change will happen if P decreases by a factor of at least this much
-    const SCALE_FACTOR: u256 = 1 * 10 ^ 9; // TODO check if this is correct
+    const SCALE_FACTOR: u256 = 1000000000; // 1e9
 
     // Highest power `SCALE_FACTOR` can be raised to without overflow
     const MAX_SCALE_FACTOR_EXPONENT: u256 = 8;
@@ -376,6 +379,7 @@ pub mod StabilityPool {
         };
         self.liquity_base.initializer(addresses_registry.contract_address);
 
+        self.P.write(P_PRECISION);
         self.coll_token.write(addresses_registry.get_coll_token());
         self.trove_manager.write(addresses_registry.get_trove_manager());
         self.bitusd_token.write(addresses_registry.get_bitusd_token());
@@ -387,6 +391,10 @@ pub mod StabilityPool {
 
     #[abi(embed_v0)]
     impl StabilityPoolImpl of super::IStabilityPool<ContractState> {
+        fn deposits(self: @ContractState, depositor: ContractAddress) -> u256 {
+            self.deposits.read(depositor).initial_value
+        }
+
         // TODO: Remove below fix
         fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
             let addresses_registry_contract = IAddressesRegistryDispatcher {
@@ -439,7 +447,7 @@ pub mod StabilityPool {
             // scale changes they span
             for i in 1..=SCALE_SPAN {
                 normalized_gains += self.scale_to_b.read(snapshots.scale + i)
-                    / SCALE_FACTOR ^ i; // TODO: check ^
+                    / fast_power(SCALE_FACTOR, i);
             }
 
             // Pending gains
@@ -456,7 +464,7 @@ pub mod StabilityPool {
                 normalized_gains += p
                     * pending_s_p_yield
                     / total_bitusd_deposits
-                    / SCALE_FACTOR ^ (current_scale - snapshots.scale); // todo check ^
+                    / fast_power(SCALE_FACTOR, current_scale - snapshots.scale);
             }
 
             return core::cmp::min(
@@ -478,11 +486,12 @@ pub mod StabilityPool {
             // the deposit's lifetime, account for them.
             // If more than `MAX_SCALE_FACTOR_EXPONENT` scale changes were made, then the divisor is
             // greater than 2^256 so any deposit amount would be rounded down to zero.
+            assert(snapshots.P != 0, 'SCOTT4');
             if (scale_diff <= MAX_SCALE_FACTOR_EXPONENT) {
                 return initial_deposit
                     * self.P.read()
                     / snapshots.P
-                    / SCALE_FACTOR ^ scale_diff; // TODO: check ^
+                    / fast_power(SCALE_FACTOR, scale_diff);
             } else {
                 return 0;
             }
@@ -702,7 +711,7 @@ pub mod StabilityPool {
             // scale changes they span
             for i in 1..=SCALE_SPAN {
                 normalized_gains += self.scale_to_s.read(snapshots.scale + i)
-                    / SCALE_FACTOR ^ i; // TODO: check ^ 
+                    / fast_power(SCALE_FACTOR, i);
             }
 
             return core::cmp::min(
@@ -722,7 +731,7 @@ pub mod StabilityPool {
 
             for i in 1..=SCALE_SPAN {
                 normalized_gains += self.scale_to_b.read(snapshots.scale + i)
-                    / SCALE_FACTOR ^ i; // TODO check ^
+                    / fast_power(SCALE_FACTOR, i);
             }
 
             return core::cmp::min(

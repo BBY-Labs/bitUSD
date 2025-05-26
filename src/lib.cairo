@@ -24,8 +24,3 @@ pub mod mocks {
     pub mod PriceFeedMock;
     pub mod TBTC;
 }
-pub mod pragma {
-    pub mod abi;
-    pub mod types;
-}
-

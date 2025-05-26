@@ -42,7 +42,9 @@ const ETH_SEPOLIA_FELT: felt252 =
     0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7;
 
 // Util deploy function
-fn __deploy__() -> (IBorrowerOperationsDispatcher, ITBTCDispatcher, IBitUSDDispatcher) {
+fn __deploy__() -> (
+    IBorrowerOperationsDispatcher, ITBTCDispatcher, IBitUSDDispatcher, IStabilityPoolDispatcher,
+) {
     // declare contract classes
     let borrower_operations_contract_class = declare("BorrowerOperations")
         .unwrap()
@@ -306,12 +308,12 @@ fn __deploy__() -> (IBorrowerOperationsDispatcher, ITBTCDispatcher, IBitUSDDispa
 
     let tbtc = ITBTCDispatcher { contract_address: tbtc_contract_address };
 
-    return (borrower_operations, tbtc, bitusd);
+    return (borrower_operations, tbtc, bitusd, stability_pool);
 }
 
 #[test]
 fn test_open_trove() {
-    let (borrower_operations, tbtc, bitusd) = __deploy__();
+    let (borrower_operations, tbtc, bitusd, stability_pool) = __deploy__();
     let tbtc_erc20 = IERC20Dispatcher { contract_address: tbtc.contract_address };
     let bitusd_erc20 = IERC20Dispatcher { contract_address: bitusd.contract_address };
     let coll_amount: u256 = 1000000000000000000;
@@ -347,5 +349,29 @@ fn test_open_trove() {
     stop_cheat_caller_address(borrower_operations.contract_address);
 
     assert(bitusd_erc20.balance_of(owner) == bitusd_amount, 'BitUSD balance not correct');
+
+    let stake_amount = bitusd_amount / 10;
+    start_cheat_caller_address(stability_pool.contract_address, OWNER());
+    stability_pool.provide_to_sp(stake_amount, do_claim: true); // Stake once
+    stop_cheat_caller_address(stability_pool.contract_address);
+    println!("stability_pool.deposits(owner): {:?}", stability_pool.deposits(owner));
+    assert(stability_pool.deposits(owner) == stake_amount, 'SP deposit not correct1');
+
+    start_cheat_caller_address(stability_pool.contract_address, OWNER());
+    stability_pool.provide_to_sp(stake_amount, do_claim: true); // Stake a second time
+    stop_cheat_caller_address(stability_pool.contract_address);
+    println!("stability_pool.deposits(owner): {:?}", stability_pool.deposits(owner));
+
+    start_cheat_caller_address(stability_pool.contract_address, OWNER());
+    stability_pool.provide_to_sp(stake_amount * 8, do_claim: true); // Stake the rest
+    stop_cheat_caller_address(stability_pool.contract_address);
+    println!("stability_pool.deposits(owner): {:?}", stability_pool.deposits(owner));
+
+    // WITHDRAW
+    start_cheat_caller_address(stability_pool.contract_address, OWNER());
+    stability_pool.withdraw_from_sp(bitusd_amount / 2, do_claim: true); // Stake the rest
+    stop_cheat_caller_address(stability_pool.contract_address);
+    println!("stability_pool.deposits(owner): {:?}", stability_pool.deposits(owner));
+
 }
 

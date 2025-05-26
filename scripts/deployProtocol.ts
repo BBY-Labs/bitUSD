@@ -32,11 +32,12 @@ const rpcUrl = process.env.RPC_URL || '';
 const network = process.env.NETWORK || 'devnet';
 const provider = new RpcProvider({ nodeUrl: rpcUrl });
 
-const UDC_ADDRESS = "0x041a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf"
-const ETH_SEPOLIA = "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
+const UDC_ADDRESS =
+  '0x041a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf';
+const ETH_SEPOLIA =
+  '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7';
 
 async function deployProtocol() {
-
   const deployerAccount = new Account(
     provider,
     accountAddress,
@@ -105,7 +106,11 @@ async function deployProtocol() {
     // multiTroveGetter
   );
 
-  let bitusd_instance = connectToContract(deployerAccount, bitusd.address, 'BitUSD');
+  let bitusd_instance = connectToContract(
+    deployerAccount,
+    bitusd.address,
+    'BitUSD'
+  );
 
   await bitusd_instance.set_collateral_registry(collateralRegistry.address);
 
@@ -271,7 +276,10 @@ async function deployAndConnectCollateralContracts(
 
   console.log('set_addresses Done');
 
-  const borrowerOperations = await deployBorrowerOperations(deployerAccount, addressesRegistry);
+  const borrowerOperations = await deployBorrowerOperations(
+    deployerAccount,
+    addressesRegistry
+  );
 
   // Deploy BorrowerOperations to precomputed address
 
@@ -333,7 +341,9 @@ async function deployAndConnectCollateralContracts(
   /////////////////////////////////////////////////////////////////////
   // Fix to resolve failing deterministic address calculation for BO //
   /////////////////////////////////////////////////////////////////////
-  let tx_ar_fix = await addressesRegistryInstance.set_borrower_operations(borrowerOperations.address);
+  let tx_ar_fix = await addressesRegistryInstance.set_borrower_operations(
+    borrowerOperations.address
+  );
   await provider.waitForTransaction(tx_ar_fix.transaction_hash);
 
   const activePoolInstance = connectToContract(
@@ -342,7 +352,9 @@ async function deployAndConnectCollateralContracts(
     'ActivePool'
   );
 
-  let tx_ap_fix = await activePoolInstance.set_addresses(addressesRegistry.address);
+  let tx_ap_fix = await activePoolInstance.set_addresses(
+    addressesRegistry.address
+  );
   await provider.waitForTransaction(tx_ap_fix.transaction_hash);
 
   const collSurplusPoolInstance = connectToContract(
@@ -351,7 +363,9 @@ async function deployAndConnectCollateralContracts(
     'CollSurplusPool'
   );
 
-  let tx_csp_fix = await collSurplusPoolInstance.set_addresses(addressesRegistry.address);
+  let tx_csp_fix = await collSurplusPoolInstance.set_addresses(
+    addressesRegistry.address
+  );
   await provider.waitForTransaction(tx_csp_fix.transaction_hash);
 
   const sortedTrovesInstance = connectToContract(
@@ -360,7 +374,9 @@ async function deployAndConnectCollateralContracts(
     'SortedTroves'
   );
 
-  let tx_st_fix = await sortedTrovesInstance.set_addresses(addressesRegistry.address);
+  let tx_st_fix = await sortedTrovesInstance.set_addresses(
+    addressesRegistry.address
+  );
   await provider.waitForTransaction(tx_st_fix.transaction_hash);
 
   const troveManagerInstance = connectToContract(
@@ -369,7 +385,20 @@ async function deployAndConnectCollateralContracts(
     'TroveManager'
   );
 
-  let tx_tm_fix = await troveManagerInstance.set_addresses(activePool.address, defaultPool.address, priceFeed.address, ETH_SEPOLIA, borrowerOperations.address, troveNFT.address, activePool.address, collSurplusPool.address, sortedTroves.address, collateralRegistry.address, bitusd.address, stabilityPool.address);
+  let tx_tm_fix = await troveManagerInstance.set_addresses(
+    activePool.address,
+    defaultPool.address,
+    priceFeed.address,
+    ETH_SEPOLIA,
+    borrowerOperations.address,
+    troveNFT.address,
+    activePool.address,
+    collSurplusPool.address,
+    sortedTroves.address,
+    collateralRegistry.address,
+    bitusd.address,
+    stabilityPool.address
+  );
   await provider.waitForTransaction(tx_tm_fix.transaction_hash);
 
   const troveNFTInstance = connectToContract(
@@ -378,7 +407,9 @@ async function deployAndConnectCollateralContracts(
     'TroveNFT'
   );
 
-  let tx_tnft_fix = await troveNFTInstance.set_addresses(addressesRegistry.address);
+  let tx_tnft_fix = await troveNFTInstance.set_addresses(
+    addressesRegistry.address
+  );
   await provider.waitForTransaction(tx_tnft_fix.transaction_hash);
 
   const stabilityPoolInstance = connectToContract(
@@ -387,7 +418,9 @@ async function deployAndConnectCollateralContracts(
     'StabilityPool'
   );
 
-  let tx_sp_fix = await stabilityPoolInstance.set_addresses(addressesRegistry.address);
+  let tx_sp_fix = await stabilityPoolInstance.set_addresses(
+    addressesRegistry.address
+  );
   await provider.waitForTransaction(tx_sp_fix.transaction_hash);
 
   /////////////////////////////////////////////////////////////////////
@@ -409,26 +442,24 @@ async function deployAndConnectCollateralContracts(
 
   await provider.waitForTransaction(tx4.transaction_hash);
 
-  console.log("BorrowerOperations");
+  console.log('BorrowerOperations');
   console.log(borrowerOperations.address);
-  console.log("SP");
+  console.log('SP');
   console.log(stabilityPool.address);
-  console.log("TM");
+  console.log('TM');
   console.log(troveManager.address);
 
   return contracts;
 }
 
-async function deployPriceFeed(
-  deployerAccount: Account
-) {
-  const { compiledSierra, compiledCasm } = getSierraAndCasm('PriceFeedMock');
+async function deployPriceFeed(deployerAccount: Account) {
+  const { compiledSierra, compiledCasm } = getSierraAndCasm('PriceFeed');
   const callData: CallData = new CallData(compiledSierra.abi);
-  const constructorCalldata: string[] = []
+  const constructorCalldata: string[] = [];
 
   return await deployContract(
     deployerAccount,
-    'PriceFeedMock',
+    'PriceFeed',
     constructorCalldata
   );
 }
@@ -511,7 +542,8 @@ async function deployInterestRouter(
   deployerAccount: Account,
   bitusd: Contract
 ) {
-  const { compiledSierra, compiledCasm } = getSierraAndCasm('InterestRouterMock');
+  const { compiledSierra, compiledCasm } =
+    getSierraAndCasm('InterestRouterMock');
   const callData: CallData = new CallData(compiledSierra.abi);
   const constructorCalldata: Calldata = callData.compile('constructor', {
     bitusd: bitusd.address,
@@ -546,14 +578,13 @@ async function deployGasPool(
   eth: string,
   borrowerOperations: string,
   troveManager: string
-
 ) {
   const { compiledSierra, compiledCasm } = getSierraAndCasm('GasPool');
   const callData: CallData = new CallData(compiledSierra.abi);
   const constructorCalldata: Calldata = callData.compile('constructor', {
     eth_address: eth,
     borrower_operations_address: borrowerOperations,
-    trove_manager_address: troveManager
+    trove_manager_address: troveManager,
   });
 
   return await deployContract(deployerAccount, 'GasPool', constructorCalldata);
@@ -702,8 +733,8 @@ async function deployBitUSD(deployerAccount: Account): Promise<Contract> {
   const callData: CallData = new CallData(compiledSierra.abi);
   const constructorCalldata: Calldata = callData.compile('constructor', {
     owner: deployerAccount.address,
-    name: 'TESTING',
-    symbol: 'TESTT',
+    name: 'bitUSD',
+    symbol: 'bitUSD',
   });
 
   return await deployContract(deployerAccount, 'BitUSD', constructorCalldata);
@@ -713,13 +744,14 @@ async function deployTBTC(deployerAccount: Account): Promise<Contract> {
   const { compiledSierra, compiledCasm } = getSierraAndCasm('TBTC');
 
   const callData: CallData = new CallData(compiledSierra.abi);
-  const constructorCalldata: string[] = []
+  const constructorCalldata: string[] = [];
 
   return await deployContract(deployerAccount, 'TBTC', constructorCalldata);
 }
 
 async function declareBorrowerOperations(deployerAccount: Account) {
-  const { compiledSierra, compiledCasm } = getSierraAndCasm('BorrowerOperations');
+  const { compiledSierra, compiledCasm } =
+    getSierraAndCasm('BorrowerOperations');
 
   // Use account.declare which handles details automatically
   const declareResult = await deployerAccount.declare({
@@ -727,13 +759,15 @@ async function declareBorrowerOperations(deployerAccount: Account) {
     casm: compiledCasm,
   });
 
-  console.log("BorrowerOperations declared with class hash:", declareResult.class_hash);
+  console.log(
+    'BorrowerOperations declared with class hash:',
+    declareResult.class_hash
+  );
 
   // Wait for declaration transaction
   await deployerAccount.waitForTransaction(declareResult.transaction_hash);
 
   return declareResult.class_hash;
-
 }
 
 async function openTrove() {
@@ -748,47 +782,44 @@ async function openTrove() {
   // Use Starknet's standard representation for the zero address
   const ZERO_ADDRESS = constants.ZERO;
 
-  const BORROWER_OPERATIONS_ADDRESS = "0x7362108a497aac0328a1df2b2699cb07df805bb05a180b69c6431e8c0443c03";
-  const TBTC_ADDRESS = '0x25e09b7c20159bcbbc483f45f356f3fc792052a1ebc0fa0a2563259499d964a';
+  const BORROWER_OPERATIONS_ADDRESS =
+    '0x7362108a497aac0328a1df2b2699cb07df805bb05a180b69c6431e8c0443c03';
+  const TBTC_ADDRESS =
+    '0x25e09b7c20159bcbbc483f45f356f3fc792052a1ebc0fa0a2563259499d964a';
 
-  const TBTC = connectToContract(
-    deployerAccount,
-    TBTC_ADDRESS,
-    'TBTC'
-  );
+  const TBTC = connectToContract(deployerAccount, TBTC_ADDRESS, 'TBTC');
 
   // Define amounts with proper BigInt handling according to ABI
-  const coll_amount = BigInt("1000000000000000000"); // 1e18
-  const bitusd_amount = BigInt("50000000000000000000000"); // 50,000 * 1e18  
-  const owner_index = BigInt("0"); // u256
-  const upper_hint = BigInt("0"); // u256
-  const lower_hint = BigInt("0"); // u256
-  const annual_interest_rate = BigInt("50000000000000000"); // 5% annual rate (0.05 * 1e18)
-  const max_upfront_fee = BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // Max uint256 // Max upfront fee
+  const coll_amount = BigInt('1000000000000000000'); // 1e18
+  const bitusd_amount = BigInt('50000000000000000000000'); // 50,000 * 1e18
+  const owner_index = BigInt('0'); // u256
+  const upper_hint = BigInt('0'); // u256
+  const lower_hint = BigInt('0'); // u256
+  const annual_interest_rate = BigInt('50000000000000000'); // 5% annual rate (0.05 * 1e18)
+  const max_upfront_fee = BigInt(
+    '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+  ); // Max uint256 // Max upfront fee
 
-  console.log("Collateral amount:", coll_amount.toString());
-  console.log("BitUSD amount:", bitusd_amount.toString());
-  console.log("Annual interest rate:", annual_interest_rate.toString());
-  console.log("Max upfront fee:", max_upfront_fee.toString());
+  console.log('Collateral amount:', coll_amount.toString());
+  console.log('BitUSD amount:', bitusd_amount.toString());
+  console.log('Annual interest rate:', annual_interest_rate.toString());
+  console.log('Max upfront fee:', max_upfront_fee.toString());
 
-  console.log("Collateral amount:", coll_amount.toString());
-  console.log("BitUSD amount:", bitusd_amount.toString());
+  console.log('Collateral amount:', coll_amount.toString());
+  console.log('BitUSD amount:', bitusd_amount.toString());
 
   try {
     // Mint tokens
-    console.log("Minting tokens...");
+    console.log('Minting tokens...');
     const tx1 = await TBTC.mint(deployerAccount.address, coll_amount);
     await provider.waitForTransaction(tx1.transaction_hash);
-    console.log("Tokens minted successfully");
+    console.log('Tokens minted successfully');
 
     // Approve tokens
-    console.log("Approving tokens...");
-    const tx2 = await TBTC.approve(
-      BORROWER_OPERATIONS_ADDRESS,
-      coll_amount
-    );
+    console.log('Approving tokens...');
+    const tx2 = await TBTC.approve(BORROWER_OPERATIONS_ADDRESS, coll_amount);
     await provider.waitForTransaction(tx2.transaction_hash);
-    console.log("Tokens approved successfully");
+    console.log('Tokens approved successfully');
 
     // Connect to BorrowerOperations contract
     const borrowerOperations = connectToContract(
@@ -798,174 +829,33 @@ async function openTrove() {
     );
 
     // Open trove
-    console.log("Opening trove...");
+    console.log('Opening trove...');
     const tx3 = await borrowerOperations.open_trove(
-      deployerAccount.address,  // owner: ContractAddress
-      owner_index,              // owner_index: u256  
-      coll_amount,              // coll_amount: u256
-      bitusd_amount,            // bitusd_amount: u256
-      upper_hint,               // upper_hint: u256
-      lower_hint,               // lower_hint: u256
-      annual_interest_rate,     // annual_interest_rate: u256
-      max_upfront_fee,          // max_upfront_fee: u256
-      ZERO_ADDRESS,    // add_manager: ContractAddress
-      ZERO_ADDRESS,    // remove_manager: ContractAddress  
-      ZERO_ADDRESS   // receiver: ContractAddress - Set to owner's address
+      deployerAccount.address, // owner: ContractAddress
+      owner_index, // owner_index: u256
+      coll_amount, // coll_amount: u256
+      bitusd_amount, // bitusd_amount: u256
+      upper_hint, // upper_hint: u256
+      lower_hint, // lower_hint: u256
+      annual_interest_rate, // annual_interest_rate: u256
+      max_upfront_fee, // max_upfront_fee: u256
+      ZERO_ADDRESS, // add_manager: ContractAddress
+      ZERO_ADDRESS, // remove_manager: ContractAddress
+      ZERO_ADDRESS // receiver: ContractAddress - Set to owner's address
     );
 
     await provider.waitForTransaction(tx3.transaction_hash);
-    console.log("Transaction hash:", tx3.transaction_hash);
-    console.log("TROVE OPENED SUCCESSFULLY");
+    console.log('Transaction hash:', tx3.transaction_hash);
+    console.log('TROVE OPENED SUCCESSFULLY');
 
     return tx3.transaction_hash;
-
   } catch (error) {
-    console.error("Error opening trove:", error);
+    console.error('Error opening trove:', error);
     throw error;
   }
 }
 
-async function openTroveTest() {
-  const deployerAccount = new Account(
-    provider,
-    accountAddress,
-    accountPrivateKey,
-    undefined,
-    constants.TRANSACTION_VERSION.V3
-  );
-
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-  const TBTC_ADDRESS = '';
-  const TBTC = connectToContract(
-    deployerAccount,
-    TBTC_ADDRESS,
-    'TBTC'
-  );
-
-  // Define amounts with proper BigInt handling according to ABI
-  const coll_amount = BigInt("1000000000000000000"); // 1e18
-  const bitusd_amount = BigInt("50000000000000000000000"); // 50,000 * 1e18  
-  const owner_index = BigInt("1"); // u256
-  const upper_hint = BigInt("0"); // u256
-  const lower_hint = BigInt("0"); // u256
-  const annual_interest_rate = BigInt("50000000000000000"); // 5% annual rate (0.05 * 1e18)
-  const max_upfront_fee = BigInt("10000000000000000000000"); // Max upfront fee
-
-  console.log("Collateral amount:", coll_amount.toString());
-  console.log("BitUSD amount:", bitusd_amount.toString());
-  console.log("Annual interest rate:", annual_interest_rate.toString());
-
-  try {
-    // First, let's verify the contracts exist and are deployed
-    console.log("Verifying contract deployments...");
-
-    const borrowerOperationsAddress = "0xb350fddf4586df51634ba623823c53e353648c73ee06bd5e2278fc4ad3eb80";
-
-    // Check if contracts are deployed
-    try {
-      const tbtcClassHash = await provider.getClassHashAt(TBTC.address);
-      const borrowerOpsClassHash = await provider.getClassHashAt(borrowerOperationsAddress);
-      console.log("TBTC contract class hash:", tbtcClassHash);
-      console.log("BorrowerOperations contract class hash:", borrowerOpsClassHash);
-    } catch (contractError) {
-      console.error("Contract verification failed:", contractError);
-      throw new Error("One or more contracts are not deployed at the specified addresses");
-    }
-
-    // Mint tokens
-    console.log("Minting tokens...");
-    const tx1 = await TBTC.mint(deployerAccount.address, coll_amount);
-    await provider.waitForTransaction(tx1.transaction_hash);
-    console.log("Tokens minted successfully");
-
-    // Approve tokens to BorrowerOperations contract
-    console.log("Approving tokens...");
-    const tx2 = await TBTC.approve(borrowerOperationsAddress, coll_amount);
-    await provider.waitForTransaction(tx2.transaction_hash);
-    console.log("Tokens approved successfully");
-
-    // Connect to BorrowerOperations contract with explicit ABI
-    const borrowerOperations = connectToContract(
-      deployerAccount,
-      borrowerOperationsAddress,
-      'BorrowerOperations'
-    );
-
-    // Verify the function exists before calling
-    console.log("Verifying open_trove function...");
-
-    // Create the call data manually to debug
-    const calldata = [
-      deployerAccount.address,  // owner: ContractAddress
-      owner_index.toString(),   // owner_index: u256  
-      coll_amount.toString(),   // coll_amount: u256
-      bitusd_amount.toString(), // bitusd_amount: u256
-      upper_hint.toString(),    // upper_hint: u256
-      lower_hint.toString(),    // lower_hint: u256
-      annual_interest_rate.toString(), // annual_interest_rate: u256
-      max_upfront_fee.toString(),      // max_upfront_fee: u256
-      ZERO_ADDRESS,             // add_manager: ContractAddress
-      ZERO_ADDRESS,             // remove_manager: ContractAddress  
-      deployerAccount.address   // receiver: ContractAddress
-    ];
-
-    console.log("Call data:", calldata);
-
-    // Try the function call
-    console.log("Opening trove...");
-    const tx3 = await borrowerOperations.open_trove(
-      deployerAccount.address,  // owner: ContractAddress
-      owner_index,              // owner_index: u256  
-      coll_amount,              // coll_amount: u256
-      bitusd_amount,            // bitusd_amount: u256
-      upper_hint,               // upper_hint: u256
-      lower_hint,               // lower_hint: u256
-      annual_interest_rate,     // annual_interest_rate: u256
-      max_upfront_fee,          // max_upfront_fee: u256
-      ZERO_ADDRESS,             // add_manager: ContractAddress
-      ZERO_ADDRESS,             // remove_manager: ContractAddress  
-      deployerAccount.address   // receiver: ContractAddress
-    );
-
-    // Alternative: Try using invoke directly instead of contract wrapper
-    console.log("Trying direct invoke as fallback...");
-    const directTx = await deployerAccount.execute({
-      contractAddress: borrowerOperationsAddress,
-      entrypoint: 'open_trove',
-      calldata: [
-        deployerAccount.address,  // owner
-        owner_index,              // owner_index
-        coll_amount,              // coll_amount  
-        bitusd_amount,            // bitusd_amount
-        upper_hint,               // upper_hint
-        lower_hint,               // lower_hint
-        annual_interest_rate,     // annual_interest_rate
-        max_upfront_fee,          // max_upfront_fee
-        ZERO_ADDRESS,             // add_manager
-        ZERO_ADDRESS,             // remove_manager
-        ZERO_ADDRESS              // receiver
-      ]
-    });
-
-    await provider.waitForTransaction(directTx.transaction_hash);
-    console.log("Direct invoke successful:", directTx.transaction_hash);
-    return directTx.transaction_hash;
-
-  } catch (error) {
-    console.error("Error opening trove:", error);
-
-    // Additional debugging info
-    console.log("Debug info:");
-    console.log("- Deployer address:", deployerAccount.address);
-    console.log("- Collateral amount:", coll_amount.toString());
-    console.log("- BitUSD amount:", bitusd_amount.toString());
-    console.log("- Interest rate:", annual_interest_rate.toString());
-
-    throw error;
-  }
-}
-
-openTrove()
+deployProtocol()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
