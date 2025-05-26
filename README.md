@@ -26,7 +26,7 @@ bitUSD is a decentralized stablecoin protocol that enables users to mint stablec
 
 ## Getting Started
 
-[Coming soon]
+Run the [webapp](https://github.com/BBY-Labs/bitusd-webapp)
 
 ## Security
 
