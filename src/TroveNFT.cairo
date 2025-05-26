@@ -6,6 +6,8 @@ pub trait ITroveNFT<TContractState> {
     fn get_trove_manager(self: @TContractState) -> ContractAddress;
     fn get_trove_owner(self: @TContractState, trove_id: u256) -> ContractAddress;
     fn get_metadata_nft(self: @TContractState) -> ContractAddress;
+    // TODO: Remove below fix
+    fn set_addresses(ref self: TContractState, addresses_registry: ContractAddress);
 }
 
 #[starknet::contract]
@@ -68,21 +70,21 @@ pub mod TroveNFT {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        addresses_registry_address: ContractAddress,
+        addresses_registry: ContractAddress,
         name: ByteArray,
         symbol: ByteArray,
         uri: ByteArray,
     ) {
-        let addresses_registry = IAddressesRegistryDispatcher {
-            contract_address: addresses_registry_address,
+        let addresses_registry_contract = IAddressesRegistryDispatcher {
+            contract_address: addresses_registry,
         };
 
         self.erc721.initializer(name, symbol, uri);
 
-        self.trove_manager.write(addresses_registry.get_trove_manager());
-        self.coll_token.write(addresses_registry.get_coll_token());
-        self.metadata_nft.write(addresses_registry.get_metadata_nft());
-        self.bitusd.write(addresses_registry.get_bitusd_token());
+        self.trove_manager.write(addresses_registry_contract.get_trove_manager());
+        self.coll_token.write(addresses_registry_contract.get_coll_token());
+        self.metadata_nft.write(addresses_registry_contract.get_metadata_nft());
+        self.bitusd.write(addresses_registry_contract.get_bitusd_token());
     }
 
     //////////////////////////////////////////////////////////////
@@ -112,6 +114,18 @@ pub mod TroveNFT {
 
         fn get_trove_owner(self: @ContractState, trove_id: u256) -> ContractAddress {
             self.erc721.owner_of(trove_id)
+        }
+
+        // TODO: Remove below fix
+        fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
+            let addresses_registry_contract = IAddressesRegistryDispatcher {
+                contract_address: addresses_registry,
+            };
+
+            self.trove_manager.write(addresses_registry_contract.get_trove_manager());
+            self.coll_token.write(addresses_registry_contract.get_coll_token());
+            self.metadata_nft.write(addresses_registry_contract.get_metadata_nft());
+            self.bitusd.write(addresses_registry_contract.get_bitusd_token());
         }
     }
 

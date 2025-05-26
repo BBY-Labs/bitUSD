@@ -6,6 +6,7 @@ pub mod CollSurplusPool;
 pub mod CollateralRegistry;
 pub mod DefaultPool;
 pub mod GasPool;
+pub mod PriceFeed;
 pub mod SortedTroves;
 pub mod StabilityPool;
 pub mod TroveManager;
@@ -19,5 +20,12 @@ pub mod dependencies {
     pub mod MathLib;
 }
 pub mod mocks {
+    pub mod InterestRouterMock;
     pub mod PriceFeedMock;
+    pub mod TBTC;
 }
+pub mod pragma {
+    pub mod abi;
+    pub mod types;
+}
+

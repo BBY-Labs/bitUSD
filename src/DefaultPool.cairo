@@ -72,9 +72,9 @@ pub mod DefaultPool {
     //////////////////////////////////////////////////////////////
 
     #[constructor]
-    fn constructor(ref self: ContractState, addresses_registry_address: ContractAddress) {
+    fn constructor(ref self: ContractState, addresses_registry: ContractAddress) {
         let addresses_registry = IAddressesRegistryDispatcher {
-            contract_address: addresses_registry_address,
+            contract_address: addresses_registry,
         };
 
         let coll_token_address = addresses_registry.get_coll_token();

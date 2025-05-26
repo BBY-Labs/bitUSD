@@ -2,6 +2,8 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait ICollSurplusPool<TContractState> {
+    // TODO: delete
+    fn set_addresses(ref self: TContractState, addresses_registry: ContractAddress);
     fn account_surplus(ref self: TContractState, account: ContractAddress, amount: u256);
     fn claim_coll(ref self: TContractState, account: ContractAddress);
     fn get_coll_token(ref self: TContractState) -> ContractAddress;
@@ -81,9 +83,9 @@ pub mod CollSurplusPool {
     ////////////////////////////////////////////////////////////////
 
     #[constructor]
-    fn constructor(ref self: ContractState, addresses_registry_address: ContractAddress) {
+    fn constructor(ref self: ContractState, addresses_registry: ContractAddress) {
         let addresses_registry = IAddressesRegistryDispatcher {
-            contract_address: addresses_registry_address,
+            contract_address: addresses_registry,
         };
         self.borrower_operations.write(addresses_registry.get_borrower_operations());
         self.trove_manager.write(addresses_registry.get_trove_manager());
@@ -107,7 +109,19 @@ pub mod CollSurplusPool {
     ////////////////////////////////////////////////////////////////
     //                     EXTERNAL FUNCTIONS                     //
     ////////////////////////////////////////////////////////////////
+    #[abi(embed_v0)]
     impl ICollSurplusPoolImpl of ICollSurplusPool<ContractState> {
+        // TODO: remove
+        fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
+            let addresses_registry_instance = IAddressesRegistryDispatcher {
+                contract_address: addresses_registry,
+            };
+
+            self.borrower_operations.write(addresses_registry_instance.get_borrower_operations());
+            self.trove_manager.write(addresses_registry_instance.get_trove_manager());
+            self.coll_token.write(addresses_registry_instance.get_coll_token());
+        }
+
         // VIEW FUNCTIONS
         fn account_surplus(ref self: ContractState, account: ContractAddress, amount: u256) {
             _require_caller_is_trove_manager(@self);

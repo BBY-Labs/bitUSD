@@ -139,6 +139,7 @@ pub mod BorrowerOperations {
     use crate::AddressesRegistry::{IAddressesRegistryDispatcher, IAddressesRegistryDispatcherTrait};
     use crate::BitUSD::{IBitUSDDispatcher, IBitUSDDispatcherTrait};
     use crate::CollSurplusPool::{ICollSurplusPoolDispatcher, ICollSurplusPoolDispatcherTrait};
+    use crate::PriceFeed::{IPriceFeedDispatcher, IPriceFeedDispatcherTrait};
     use crate::SortedTroves::{ISortedTrovesDispatcher, ISortedTrovesDispatcherTrait};
     use crate::TroveManager::{
         ITroveManagerDispatcher, ITroveManagerDispatcherTrait, LatestBatchData, LatestTroveData,
@@ -151,7 +152,6 @@ pub mod BorrowerOperations {
     };
     use crate::dependencies::LiquityBase::LiquityBaseComponent;
     use crate::dependencies::MathLib::math_lib;
-    use crate::mocks::PriceFeedMock::{IPriceFeedMockDispatcher, IPriceFeedMockDispatcherTrait};
     use super::{ContractAddressDefault, IBorrowerOperations};
     // use crate::dependencies::AddRemoveManagers; // TODO addRemoveManagers
 
@@ -410,15 +410,16 @@ pub mod BorrowerOperations {
             let total_coll = self.liquity_base.get_entire_branch_coll();
             let total_debt = self.liquity_base.get_entire_branch_debt();
 
-            let price_feed = IPriceFeedMockDispatcher {
+            let price_feed = IPriceFeedDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let (price, new_oracle_failure_detected) = price_feed.fetch_price();
+            let price = price_feed.fetch_price();
 
             // If the oracle failed, the above call to PriceFeed will have shut this branch down
-            if new_oracle_failure_detected {
-                return;
-            }
+            // TODO: add validation check, and add below check.
+            // if new_oracle_failure_detected {
+            //    return;
+            // }
 
             // Otherwise, proceed with the TCR check:
             let tcr = math_lib::compute_cr(total_coll, total_debt, price);
@@ -822,10 +823,10 @@ pub mod BorrowerOperations {
             // code, check git blame?
             }
 
-            let price_feed = IPriceFeedMockDispatcher {
+            let price_feed = IPriceFeedDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let (price, _) = price_feed.fetch_price();
+            let price = price_feed.fetch_price();
             let new_tcr = self._get_new_TCR_from_trove_change(trove_change, price);
             if !self.has_been_shutdown.read() {
                 self._require_new_tcr_is_above_ccr(new_tcr);
@@ -848,9 +849,9 @@ pub mod BorrowerOperations {
             active_pool_cached
                 .mint_agg_interest_and_account_for_trove_change(trove_change, batch_manager);
 
-            // Return ETH gas compensation // TODO change this
-            let weth = IERC20Dispatcher { contract_address: self.eth.read() };
-            weth.transfer_from(self.gas_pool_address.read(), receiver, ETH_GAS_COMPENSATION);
+            // Return ETH gas compensation // TODO change or re add this
+            // let weth = IERC20Dispatcher { contract_address: self.eth.read() };
+            // weth.transfer_from(self.gas_pool_address.read(), receiver, ETH_GAS_COMPENSATION);
             // Burn the remainder of the Trove's entire debt from the user
             bitusd_token_cached.burn(get_caller_address(), trove.entire_debt);
 
@@ -1271,11 +1272,12 @@ pub mod BorrowerOperations {
         }
 
         fn _require_oracles_live(self: @ContractState) -> u256 {
-            let price_feed = IPriceFeedMockDispatcher {
+            let price_feed = IPriceFeedDispatcher {
                 contract_address: self.liquity_base.price_feed.read(),
             };
-            let (price, new_oracle_failure_detected) = price_feed.fetch_price();
-            assert(!new_oracle_failure_detected, 'BO: New Oracle Failure Detected');
+            let price = price_feed.fetch_price();
+            // TODO: add validation check, and add below assertion.
+            //assert(!new_oracle_failure_detected, 'BO: New Oracle Failure Detected');
             return price;
         }
 
@@ -1534,9 +1536,9 @@ pub mod BorrowerOperations {
             let bitusd_token = IBitUSDDispatcher { contract_address: vars.bitusd_token };
             bitusd_token.mint(msg_sender, bitusd_amount);
 
-            // TODO: change WETH
-            let weth = IERC20Dispatcher { contract_address: self.eth.read() };
-            weth.transfer_from(msg_sender, self.gas_pool_address.read(), ETH_GAS_COMPENSATION);
+            // TODO: We skip this for now.
+            // let weth = IERC20Dispatcher { contract_address: self.eth.read() };
+            // weth.transfer_from(msg_sender, self.gas_pool_address.read(), ETH_GAS_COMPENSATION);
 
             return vars.trove_id;
         }

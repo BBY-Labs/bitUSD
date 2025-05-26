@@ -24,6 +24,9 @@ pub trait IAddressesRegistry<TContractState> {
         coll_token: ContractAddress,
     );
 
+    // TODO: remove
+    fn set_borrower_operations(ref self: TContractState, bo: ContractAddress);
+
     fn get_active_pool(self: @TContractState) -> ContractAddress;
     fn get_default_pool(self: @TContractState) -> ContractAddress;
     fn get_price_pool(self: @TContractState) -> ContractAddress;
@@ -211,7 +214,13 @@ pub mod AddressesRegistry {
             self.interest_router.write(interest_router);
             self.stability_pool.write(stability_pool);
             self.coll_token.write(coll_token);
-            self.ownable.renounce_ownership();
+            // TODO: Below should be added after testing.
+        // self.ownable.renounce_ownership();
+        }
+
+        // TODO: remove
+        fn set_borrower_operations(ref self: ContractState, bo: ContractAddress) {
+            self.borrower_operations.write(bo);
         }
 
         //////////////////////////////////////////////////////////////

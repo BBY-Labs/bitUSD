@@ -43,6 +43,9 @@ pub trait IStabilityPool<TContractState> {
     fn get_depositor_yield_gain_with_pending(
         self: @TContractState, depositor: ContractAddress,
     ) -> u256;
+
+    // TODO: Remove below fix
+    fn set_addresses(ref self: TContractState, addresses_registry: ContractAddress);
 }
 
 //! The Stability Pool holds Bold tokens deposited by Stability Pool depositors.
@@ -367,7 +370,10 @@ pub mod StabilityPool {
     ////////////////////////////////////////////////////////////////
 
     #[constructor]
-    fn constructor(ref self: ContractState, addresses_registry: IAddressesRegistryDispatcher) {
+    fn constructor(ref self: ContractState, addresses_registry: ContractAddress) {
+        let addresses_registry = IAddressesRegistryDispatcher {
+            contract_address: addresses_registry,
+        };
         self.liquity_base.initializer(addresses_registry.contract_address);
 
         self.coll_token.write(addresses_registry.get_coll_token());
@@ -381,6 +387,20 @@ pub mod StabilityPool {
 
     #[abi(embed_v0)]
     impl StabilityPoolImpl of super::IStabilityPool<ContractState> {
+        // TODO: Remove below fix
+        fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
+            let addresses_registry_contract = IAddressesRegistryDispatcher {
+                contract_address: addresses_registry,
+            };
+
+            self.coll_token.write(addresses_registry_contract.get_coll_token());
+            self.trove_manager.write(addresses_registry_contract.get_trove_manager());
+            self.bitusd_token.write(addresses_registry_contract.get_bitusd_token());
+            self.liquity_base.active_pool.write(addresses_registry_contract.get_active_pool());
+            self.liquity_base.default_pool.write(addresses_registry_contract.get_default_pool());
+            self.liquity_base.price_feed.write(addresses_registry_contract.get_price_pool());
+        }
+
         fn get_coll_balance(self: @ContractState) -> u256 {
             self.coll_balance.read()
         }

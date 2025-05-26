@@ -1,5 +1,22 @@
+# snforge
 target
 .snfoundry_cache/
 snfoundry_trace/
 coverage/
 profile/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# node
+node_modules
+yarn-error.log
+
+artifacts
+!deployments/artifacts
+dist
+deployment_*
+
+.vscode

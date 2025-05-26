@@ -15,12 +15,18 @@ assert_macros = "2.10.1"
 
 [[target.starknet-contract]]
 sierra = true
+casm = true
 
 [scripts]
 test = "snforge test"
 
 [tool.scarb]
 allow-prebuilt-plugins = ["snforge_std"]
+
+[profile.dev.cairo]                                          # Configure Cairo compiler
+unstable-add-statements-code-locations-debug-info = true   # Should be used if you want to use coverage
+unstable-add-statements-functions-debug-info = true        # Should be used if you want to use coverage/profiler
+panic-backtrace = true                              # Should be used if you want to use coverage
 
 # Visit https://foundry-rs.github.io/starknet-foundry/appendix/scarb-toml.html for more information
 

@@ -29,6 +29,9 @@ pub trait IActivePool<TContractState> {
     // Shutdown
     fn set_shutdown_flag(ref self: TContractState);
     fn has_been_shutdown(self: @TContractState) -> bool;
+
+    // TODO: remove (needed for precompile issue)
+    fn set_addresses(ref self: TContractState, addresses_registry: ContractAddress);
 }
 
 
@@ -42,7 +45,9 @@ pub mod ActivePool {
     use crate::BitUSD::{IBitUSDDispatcher, IBitUSDDispatcherTrait};
     use crate::DefaultPool::{IDefaultPoolDispatcher, IDefaultPoolDispatcherTrait};
     use crate::StabilityPool::{IStabilityPoolDispatcher, IStabilityPoolDispatcherTrait};
-    use crate::dependencies::Constants::Constants::{DECIMAL_PRECISION, ONE_YEAR, SP_YIELD_SPLIT};
+    use crate::dependencies::Constants::Constants::{
+        DECIMAL_PRECISION, MAX_UINT256, ONE_YEAR, SP_YIELD_SPLIT,
+    };
     use crate::dependencies::ConversionLib::conversion_lib;
     use crate::dependencies::MathLib::math_lib;
     use super::{IActivePool, TroveChange};
@@ -144,9 +149,9 @@ pub mod ActivePool {
     //////////////////////////////////////////////////////////////
 
     #[constructor]
-    fn constructor(ref self: ContractState, addresses_registry_address: ContractAddress) {
+    fn constructor(ref self: ContractState, addresses_registry: ContractAddress) {
         let addresses_registry = IAddressesRegistryDispatcher {
-            contract_address: addresses_registry_address,
+            contract_address: addresses_registry,
         };
 
         self.coll_token.write(addresses_registry.get_coll_token());
@@ -156,6 +161,10 @@ pub mod ActivePool {
         self.default_pool.write(addresses_registry.get_default_pool());
         self.interest_router.write(addresses_registry.get_interest_router());
         self.bit_usd.write(addresses_registry.get_bitusd_token());
+
+        // TODO: Reinstore below
+        //let coll_token = IERC20Dispatcher { contract_address: self.coll_token.read() };
+        //coll_token.approve(self.default_pool.read(), MAX_UINT256);
 
         self
             .emit(
@@ -193,6 +202,24 @@ pub mod ActivePool {
 
     #[abi(embed_v0)]
     impl IActivePoolImpl of IActivePool<ContractState> {
+        // TODO: to remove
+        fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
+            let addresses_registry_contract = IAddressesRegistryDispatcher {
+                contract_address: addresses_registry,
+            };
+
+            self.coll_token.write(addresses_registry_contract.get_coll_token());
+            self.borrower_operations.write(addresses_registry_contract.get_borrower_operations());
+            self.trove_manager.write(addresses_registry_contract.get_trove_manager());
+            self.default_pool.write(addresses_registry_contract.get_default_pool());
+            self.bit_usd.write(addresses_registry_contract.get_bitusd_token());
+            self.interest_router.write(addresses_registry_contract.get_interest_router());
+            self.stability_pool.write(addresses_registry_contract.get_stability_pool());
+
+            let coll_token = IERC20Dispatcher { contract_address: self.coll_token.read() };
+            coll_token.approve(self.default_pool.read(), MAX_UINT256);
+        }
+
         fn mint_agg_interest(ref self: ContractState) {
             _require_caller_is_BO_or_SP(@self);
             let agg_interest = _mint_agg_interest(ref self, 0);

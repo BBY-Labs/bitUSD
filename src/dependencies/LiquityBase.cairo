@@ -102,10 +102,10 @@ pub mod LiquityBaseComponent {
         TContractState, +HasComponent<TContractState>,
     > of InternalTrait<TContractState> {
         fn initializer(
-            ref self: ComponentState<TContractState>, addresses_registry_address: ContractAddress,
+            ref self: ComponentState<TContractState>, addresses_registry: ContractAddress,
         ) {
             let addresses_registry = IAddressesRegistryDispatcher {
-                contract_address: addresses_registry_address,
+                contract_address: addresses_registry,
             };
 
             self.active_pool.write(addresses_registry.get_active_pool());

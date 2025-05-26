@@ -147,10 +147,10 @@ pub mod AddRemoveManagersComponent {
         TContractState, +HasComponent<TContractState>,
     > of InternalTrait<TContractState> {
         fn initializer(
-            ref self: ComponentState<TContractState>, addresses_registry_address: ContractAddress,
+            ref self: ComponentState<TContractState>, addresses_registry: ContractAddress,
         ) {
             let addresses_registry = IAddressesRegistryDispatcher {
-                contract_address: addresses_registry_address,
+                contract_address: addresses_registry,
             };
 
             self.trove_nft.write(addresses_registry.get_trove_nft());

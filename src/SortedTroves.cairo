@@ -2,6 +2,7 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait ISortedTroves<TContractState> {
+    fn set_addresses(ref self: TContractState, addresses_registry: ContractAddress);
     fn insert(
         ref self: TContractState,
         id: u256,
@@ -167,13 +168,13 @@ pub mod SortedTroves {
     ////////////////////////////////////////////////////////////////
 
     #[constructor]
-    fn constructor(ref self: ContractState, addresses_registry_address: ContractAddress) {
+    fn constructor(ref self: ContractState, addresses_registry: ContractAddress) {
         // Technically, this is not needed as long as ROOT_NODE_ID is 0, but it doesn't hurt
         self.nodes.entry(ROOT_NODE_ID).next_id.write(ROOT_NODE_ID);
         self.nodes.entry(ROOT_NODE_ID).prev_id.write(ROOT_NODE_ID);
 
         let addresses_registry = IAddressesRegistryDispatcher {
-            contract_address: addresses_registry_address,
+            contract_address: addresses_registry,
         };
 
         self.trove_manager.write(addresses_registry.get_trove_manager());
@@ -197,8 +198,18 @@ pub mod SortedTroves {
     ////////////////////////////////////////////////////////////////
     //                     EXTERNAL FUNCTIONS                     //
     ////////////////////////////////////////////////////////////////
-
+    #[abi(embed_v0)]
     impl ISortedTrovesImpl of ISortedTroves<ContractState> {
+        // TODO: remove
+        fn set_addresses(ref self: ContractState, addresses_registry: ContractAddress) {
+            let addresses_registry_instance = IAddressesRegistryDispatcher {
+                contract_address: addresses_registry,
+            };
+
+            self.borrower_operations.write(addresses_registry_instance.get_borrower_operations());
+            self.trove_manager.write(addresses_registry_instance.get_trove_manager());
+        }
+
         // Add a trove to the list.
         fn insert(
             ref self: ContractState,
